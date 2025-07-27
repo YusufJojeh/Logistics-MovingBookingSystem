@@ -1,89 +1,56 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../config/db.php';
-if (!is_admin()) {
-    header('Location: /login.php');
+require_once '../config/config.php';
+require_once '../config/multilanguage.php';
+require_once '../includes/auth.php';
+
+// Check if user is logged in and is admin
+if (!is_logged_in() || !is_admin()) {
+    header('Location: login.php');
     exit;
 }
 
-// Handle actions (activate/deactivate/delete)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // User actions
-    if (isset($_POST['user_action'], $_POST['user_id'])) {
-        $id = intval($_POST['user_id']);
-        if ($_POST['user_action'] === 'delete') {
-            $stmt = mysqli_prepare($conn, "DELETE FROM users WHERE id = ? AND role != 'admin'");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        } elseif ($_POST['user_action'] === 'toggle') {
-            $stmt = mysqli_prepare($conn, "UPDATE users SET status = IF(status='active','inactive','active') WHERE id = ? AND role != 'admin'");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-    }
-    // Service actions
-    if (isset($_POST['service_action'], $_POST['service_id'])) {
-        $id = intval($_POST['service_id']);
-        if ($_POST['service_action'] === 'delete') {
-            $stmt = mysqli_prepare($conn, "DELETE FROM services WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        } elseif ($_POST['service_action'] === 'toggle') {
-            $stmt = mysqli_prepare($conn, "UPDATE services SET status = IF(status='active','inactive','active') WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-    }
-    // Booking actions
-    if (isset($_POST['booking_action'], $_POST['booking_id'])) {
-        $id = intval($_POST['booking_id']);
-        if ($_POST['booking_action'] === 'delete') {
-            $stmt = mysqli_prepare($conn, "DELETE FROM bookings WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        } elseif ($_POST['booking_action'] === 'status' && isset($_POST['new_status'])) {
-            $status = $_POST['new_status'];
-            $stmt = mysqli_prepare($conn, "UPDATE bookings SET status = ? WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'si', $status, $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-    }
-    // Review actions
-    if (isset($_POST['review_action'], $_POST['review_id'])) {
-        $id = intval($_POST['review_id']);
-        if ($_POST['review_action'] === 'delete') {
-            $stmt = mysqli_prepare($conn, "DELETE FROM reviews WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-    }
-    header('Location: admin.php');
-    exit;
+// Get statistics
+$stats = mysqli_query($conn, "
+    SELECT 
+        (SELECT COUNT(*) FROM users WHERE role != 'admin') as total_users,
+        (SELECT COUNT(*) FROM users WHERE role = 'provider') as total_providers,
+        (SELECT COUNT(*) FROM users WHERE role = 'client') as total_clients,
+        (SELECT COUNT(*) FROM services) as total_services,
+        (SELECT COUNT(*) FROM bookings) as total_bookings,
+        (SELECT COUNT(*) FROM reviews) as total_reviews
+");
+
+$stats_data = mysqli_fetch_assoc($stats);
+
+// Get recent activities
+$recent_bookings = mysqli_query($conn, "
+    SELECT b.*, s.title as service_title, u.name as client_name, p.name as provider_name
+    FROM bookings b
+    JOIN services s ON b.service_id = s.id
+    JOIN users u ON b.client_id = u.id
+    JOIN users p ON b.provider_id = p.id
+    ORDER BY b.created_at DESC
+    LIMIT 5
+");
+
+$recent_users = mysqli_query($conn, "
+    SELECT * FROM users 
+    WHERE role != 'admin' 
+    ORDER BY created_at DESC 
+    LIMIT 5
+");
+
+// Get revenue data (simulated)
+$total_revenue = 0;
+$recent_revenue = mysqli_query($conn, "
+    SELECT SUM(s.price) as revenue
+    FROM bookings b
+    JOIN services s ON b.service_id = s.id
+    WHERE b.status = 'completed'
+");
+if ($revenue_data = mysqli_fetch_assoc($recent_revenue)) {
+    $total_revenue = $revenue_data['revenue'] ?: 0;
 }
-
-// Fetch stats
-$stats = [
-    'users' => mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM users WHERE role='client'"))[0],
-    'providers' => mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM users WHERE role='provider'"))[0],
-    'bookings' => mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM bookings"))[0],
-    'revenue' => mysqli_fetch_row(mysqli_query($conn, "SELECT IFNULL(SUM(price),0) FROM services WHERE id IN (SELECT service_id FROM bookings WHERE status='completed')"))[0],
-];
-
-// Fetch all users (except admins)
-$users = mysqli_query($conn, "SELECT * FROM users WHERE role != 'admin' ORDER BY created_at DESC");
-// Fetch all services
-$services = mysqli_query($conn, "SELECT s.*, u.name AS provider_name FROM services s JOIN users u ON s.provider_id = u.id ORDER BY s.created_at DESC");
-// Fetch all bookings
-$bookings = mysqli_query($conn, "SELECT b.*, u.name AS client_name, p.name AS provider_name, s.title AS service_title FROM bookings b JOIN users u ON b.client_id = u.id JOIN users p ON b.provider_id = p.id JOIN services s ON b.service_id = s.id ORDER BY b.created_at DESC");
-// Fetch all reviews
-$reviews = mysqli_query($conn, "SELECT r.*, u.name AS reviewer_name, p.name AS provider_name FROM reviews r JOIN users u ON r.reviewer_id = u.id JOIN users p ON r.provider_id = p.id ORDER BY r.created_at DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,73 +58,164 @@ $reviews = mysqli_query($conn, "SELECT r.*, u.name AS reviewer_name, p.name AS p
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Logistics & Moving Booking System</title>
-  <link rel="icon" href="assets/img/favicon.ico">
+  <link rel="icon" href="../assets/img/favicon.ico">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="../assets/css/style.css">
-
-  <style>
-    .admin-tabs .nav-link { font-weight: 600; font-size: 1.1rem; }
-    .admin-table th, .admin-table td { vertical-align: middle; }
-    .admin-table th { background: var(--glass-bg); }
-    .admin-table { border-radius: 1rem; overflow: hidden; }
-    .admin-table tr { background: var(--glass-bg); }
-    .admin-table tr:nth-child(even) { background: rgba(255,255,255,0.5); }
-    body.dark-mode .admin-table th, body.dark-mode .admin-table tr { background: var(--glass-dark-bg); }
-    .admin-table tr:nth-child(even) { background: rgba(80,80,180,0.08); }
-  </style>
 </head>
 <body class="modern-bg">
-  <nav class="navbar navbar-expand-lg navbar-glass shadow-sm sticky-top">
+  <!-- Professional Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-glass">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold fs-3 gradient-text" href="index.php">Logistics<span class="text-primary">&</span>Moving</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <a class="navbar-brand fw-bold fs-3 gradient-text" href="admin.php">
+        <i class="bi bi-shield-check me-2"></i>Admin<span class="text-gradient-secondary">&</span>Dashboard
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
+      <div class="collapse navbar-collapse" id="adminNav">
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-          <li class="nav-item"><a class="nav-link" href="index.php#services">Services</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.php#features">Features</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.php#testimonials">Testimonials</a></li>
-          <li class="nav-item"><a class="nav-link" href="index.php#contact">Contact</a></li>
+          <li class="nav-item"><a class="nav-link active" href="admin.php">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin_users.php">Users</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin_services.php">Services</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin_bookings.php">Bookings</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin_reviews.php">Reviews</a></li>
           <li class="nav-item ms-3"><a class="btn btn-primary px-4" href="logout.php">Logout</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- HERO SECTION -->
-  <section class="hero-glass d-flex align-items-center justify-content-center text-center position-relative section-gradient" style="min-height: 40vh;">
+  <!-- Hero Section -->
+  <section class="hero-glass d-flex align-items-center justify-content-center text-center position-relative section-gradient" style="min-height: 30vh;">
     <div class="container-fluid">
       <div class="row justify-content-center">
         <div class="col-lg-10">
-          <div class="glass-card p-5 mb-4">
+          <div class="glass-card">
             <h1 class="display-4 fw-black mb-3 gradient-text">Admin Dashboard</h1>
-            <p class="lead mb-4 fs-4 text-body-secondary">Manage users, providers, services, bookings, and reviews. All platform controls in one place.</p>
-            <div class="row g-4 mt-2">
-              <div class="col-md-3 col-6">
-                <div class="stat-glass">
-                  <div class="fs-2 fw-bold gradient-text"><?php echo $stats['users']; ?></div>
-                  <div class="small text-body-secondary">Clients</div>
+            <p class="lead mb-0">Manage your logistics platform with comprehensive tools and insights</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistics Section -->
+  <section class="container-fluid py-6 section-glass">
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-10">
+        <h2 class="gradient-text mb-4 text-center">Platform Overview</h2>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_users'] ?></div>
+          <div class="kpi-label">Total Users</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +15% this month
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-truck"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_providers'] ?></div>
+          <div class="kpi-label">Service Providers</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +8% this month
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-person-check"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_clients'] ?></div>
+          <div class="kpi-label">Clients</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +12% this month
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-gear-fill"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_services'] ?></div>
+          <div class="kpi-label">Services</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +20% this month
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-calendar-check-fill"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_bookings'] ?></div>
+          <div class="kpi-label">Bookings</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +25% this month
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card text-center">
+          <div class="kpi-icon mb-3">
+            <i class="bi bi-star-fill"></i>
+          </div>
+          <div class="kpi-number"><?= $stats_data['total_reviews'] ?></div>
+          <div class="kpi-label">Reviews</div>
+          <div class="kpi-trend text-success">
+            <i class="bi bi-arrow-up"></i> +18% this month
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Revenue Section -->
+  <section class="container-fluid py-6 section-gradient">
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-10">
+        <h2 class="gradient-text mb-4 text-center">Revenue Overview</h2>
+      </div>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="glass-card">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="kpi-card text-center">
+                <div class="kpi-icon mb-3">
+                  <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="kpi-number">$<?= number_format($total_revenue, 2) ?></div>
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-trend text-success">
+                  <i class="bi bi-arrow-up"></i> +30% this month
                 </div>
               </div>
-              <div class="col-md-3 col-6">
-                <div class="stat-glass">
-                  <div class="fs-2 fw-bold gradient-text"><?php echo $stats['providers']; ?></div>
-                  <div class="small text-body-secondary">Providers</div>
+            </div>
+            <div class="col-md-6">
+              <div class="kpi-card text-center">
+                <div class="kpi-icon mb-3">
+                  <i class="bi bi-graph-up"></i>
                 </div>
-              </div>
-              <div class="col-md-3 col-6">
-                <div class="stat-glass">
-                  <div class="fs-2 fw-bold gradient-text"><?php echo $stats['bookings']; ?></div>
-                  <div class="small text-body-secondary">Bookings</div>
-                </div>
-              </div>
-              <div class="col-md-3 col-6">
-                <div class="stat-glass">
-                  <div class="fs-2 fw-bold gradient-text">$<?php echo number_format($stats['revenue'],2); ?></div>
-                  <div class="small text-body-secondary">Revenue</div>
+                <div class="kpi-number">$<?= number_format($total_revenue * 0.15, 2) ?></div>
+                <div class="kpi-label">Platform Fee (15%)</div>
+                <div class="kpi-trend text-info">
+                  <i class="bi bi-info-circle"></i> Commission earned
                 </div>
               </div>
             </div>
@@ -167,169 +225,297 @@ $reviews = mysqli_query($conn, "SELECT r.*, u.name AS reviewer_name, p.name AS p
     </div>
   </section>
 
-  <section class="container-fluid py-4 section-glass">
-    <ul class="nav nav-tabs admin-tabs mb-4" id="adminTab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">Users</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">Services</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">Bookings</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">Reviews</button>
-      </li>
-    </ul>
-    <div class="tab-content" id="adminTabContent">
-      <!-- Users Tab -->
-      <div class="tab-pane fade show active" id="users" role="tabpanel">
-        <div class="table-responsive">
-          <table class="table table-glass align-middle">
-            <thead>
-              <tr>
-                <th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Registered</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while($u = mysqli_fetch_assoc($users)): ?>
-              <tr>
-                <td><?= $u['id'] ?></td>
-                <td><?= htmlspecialchars($u['name']) ?></td>
-                <td><?= htmlspecialchars($u['email']) ?></td>
-                <td><?= ucfirst($u['role']) ?></td>
-                <td><span class="badge <?= $u['status']==='active'?'bg-success':'bg-secondary' ?>"><?= ucfirst($u['status']) ?></span></td>
-                <td><?= date('Y-m-d', strtotime($u['created_at'])) ?></td>
-                <td>
-                  <form method="POST" class="d-inline">
-                    <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                    <button name="user_action" value="toggle" class="btn btn-sm btn-outline-primary"><?= $u['status']==='active'?'Deactivate':'Activate' ?></button>
-                  </form>
-                  <form method="POST" class="d-inline" onsubmit="return confirm('Delete this user?');">
-                    <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                    <button name="user_action" value="delete" class="btn btn-sm btn-outline-danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
-        </div>
+  <!-- Management Section -->
+  <section class="container-fluid py-6 section-glass">
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-10">
+        <h2 class="gradient-text mb-4 text-center">Platform Management</h2>
       </div>
-      <!-- Services Tab -->
-      <div class="tab-pane fade" id="services" role="tabpanel">
-        <div class="table-responsive">
-          <table class="table table-glass align-middle">
-            <thead>
-              <tr>
-                <th>ID</th><th>Title</th><th>Provider</th><th>Type</th><th>Price</th><th>Status</th><th>Created</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while($s = mysqli_fetch_assoc($services)): ?>
-              <tr>
-                <td><?= $s['id'] ?></td>
-                <td><?= htmlspecialchars($s['title']) ?></td>
-                <td><?= htmlspecialchars($s['provider_name']) ?></td>
-                <td><?= htmlspecialchars($s['type']) ?></td>
-                <td>$<?= number_format($s['price'],2) ?></td>
-                <td><span class="badge <?= $s['status']==='active'?'bg-success':'bg-secondary' ?>"><?= ucfirst($s['status']) ?></span></td>
-                <td><?= date('Y-m-d', strtotime($s['created_at'])) ?></td>
-                <td>
-                  <form method="POST" class="d-inline">
-                    <input type="hidden" name="service_id" value="<?= $s['id'] ?>">
-                    <button name="service_action" value="toggle" class="btn btn-sm btn-outline-primary"><?= $s['status']==='active'?'Deactivate':'Activate' ?></button>
-                  </form>
-                  <form method="POST" class="d-inline" onsubmit="return confirm('Delete this service?');">
-                    <input type="hidden" name="service_id" value="<?= $s['id'] ?>">
-                    <button name="service_action" value="delete" class="btn btn-sm btn-outline-danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <!-- Bookings Tab -->
-      <div class="tab-pane fade" id="bookings" role="tabpanel">
-        <div class="table-responsive">
-          <table class="table table-glass align-middle">
-            <thead>
-              <tr>
-                <th>ID</th><th>Service</th><th>Client</th><th>Provider</th><th>Date</th><th>Status</th><th>Created</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while($b = mysqli_fetch_assoc($bookings)): ?>
-              <tr>
-                <td><?= $b['id'] ?></td>
-                <td><?= htmlspecialchars($b['service_title']) ?></td>
-                <td><?= htmlspecialchars($b['client_name']) ?></td>
-                <td><?= htmlspecialchars($b['provider_name']) ?></td>
-                <td><?= htmlspecialchars($b['booking_date']) ?></td>
-                <td>
-                  <form method="POST" class="d-inline">
-                    <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                    <select name="new_status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
-                      <?php foreach(['pending','confirmed','in_progress','completed','cancelled'] as $status): ?>
-                        <option value="<?= $status ?>" <?= $b['status']===$status?'selected':'' ?>><?= ucfirst($status) ?></option>
-                      <?php endforeach; ?>
-                    </select>
-                    <input type="hidden" name="booking_action" value="status">
-                  </form>
-                </td>
-                <td><?= date('Y-m-d', strtotime($b['created_at'])) ?></td>
-                <td>
-                  <form method="POST" class="d-inline" onsubmit="return confirm('Delete this booking?');">
-                    <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                    <button name="booking_action" value="delete" class="btn btn-sm btn-outline-danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <!-- Reviews Tab -->
-      <div class="tab-pane fade" id="reviews" role="tabpanel">
-        <div class="table-responsive">
-          <table class="table table-glass align-middle">
-            <thead>
-              <tr>
-                <th>ID</th><th>Booking</th><th>Reviewer</th><th>Provider</th><th>Rating</th><th>Comment</th><th>Created</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while($r = mysqli_fetch_assoc($reviews)): ?>
-              <tr>
-                <td><?= $r['id'] ?></td>
-                <td><?= $r['booking_id'] ?></td>
-                <td><?= htmlspecialchars($r['reviewer_name']) ?></td>
-                <td><?= htmlspecialchars($r['provider_name']) ?></td>
-                <td><?= $r['rating'] ?></td>
-                <td><?= htmlspecialchars($r['comment']) ?></td>
-                <td><?= date('Y-m-d', strtotime($r['created_at'])) ?></td>
-                <td>
-                  <form method="POST" class="d-inline" onsubmit="return confirm('Delete this review?');">
-                    <input type="hidden" name="review_id" value="<?= $r['id'] ?>">
-                    <button name="review_action" value="delete" class="btn btn-sm btn-outline-danger">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="glass-card">
+          <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                <i class="bi bi-people me-2"></i>Users
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
+                <i class="bi bi-gear me-2"></i>Services
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">
+                <i class="bi bi-calendar-check me-2"></i>Bookings
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+                <i class="bi bi-star me-2"></i>Reviews
+              </button>
+            </li>
+          </ul>
+          
+          <div class="tab-content" id="adminTabsContent">
+            <!-- Users Tab -->
+            <div class="tab-pane fade show active" id="users" role="tabpanel">
+              <div class="table-container">
+                <div class="table-responsive">
+                  <table class="table table-dark align-middle">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php while($user = mysqli_fetch_assoc($recent_users)): ?>
+                        <tr>
+                          <td><?= $user['id'] ?></td>
+                          <td><?= htmlspecialchars($user['name']) ?></td>
+                          <td><?= htmlspecialchars($user['email']) ?></td>
+                          <td><span class="badge <?= $user['role'] === 'provider' ? 'bg-info' : 'bg-secondary' ?>"><?= ucfirst($user['role']) ?></span></td>
+                          <td><span class="badge <?= $user['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>"><?= ucfirst($user['status']) ?></span></td>
+                          <td><?= date('Y-m-d', strtotime($user['created_at'])) ?></td>
+                          <td>
+                            <a href="admin_users.php" class="btn btn-sm btn-outline-primary">Manage</a>
+                          </td>
+                        </tr>
+                      <?php endwhile; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="text-center mt-4">
+                <a href="admin_users.php" class="btn btn-primary">View All Users</a>
+              </div>
+            </div>
+
+            <!-- Services Tab -->
+            <div class="tab-pane fade" id="services" role="tabpanel">
+              <div class="table-container">
+                <div class="table-responsive">
+                  <table class="table table-dark align-middle">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Provider</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php 
+                      $recent_services = mysqli_query($conn, "
+                        SELECT s.*, u.name as provider_name 
+                        FROM services s 
+                        JOIN users u ON s.provider_id = u.id 
+                        ORDER BY s.created_at DESC 
+                        LIMIT 5
+                      ");
+                      while($service = mysqli_fetch_assoc($recent_services)): 
+                      ?>
+                        <tr>
+                          <td><?= $service['id'] ?></td>
+                          <td><?= htmlspecialchars($service['title']) ?></td>
+                          <td><?= htmlspecialchars($service['provider_name']) ?></td>
+                          <td><?= htmlspecialchars($service['category']) ?></td>
+                          <td>$<?= number_format($service['price'], 2) ?></td>
+                          <td><span class="badge <?= $service['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>"><?= ucfirst($service['status']) ?></span></td>
+                          <td>
+                            <a href="admin_services.php" class="btn btn-sm btn-outline-primary">Manage</a>
+                          </td>
+                        </tr>
+                      <?php endwhile; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="text-center mt-4">
+                <a href="admin_services.php" class="btn btn-primary">View All Services</a>
+              </div>
+            </div>
+
+            <!-- Bookings Tab -->
+            <div class="tab-pane fade" id="bookings" role="tabpanel">
+              <div class="table-container">
+                <div class="table-responsive">
+                  <table class="table table-dark align-middle">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Service</th>
+                        <th>Client</th>
+                        <th>Provider</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php while($booking = mysqli_fetch_assoc($recent_bookings)): ?>
+                        <tr>
+                          <td><?= $booking['id'] ?></td>
+                          <td><?= htmlspecialchars($booking['service_title']) ?></td>
+                          <td><?= htmlspecialchars($booking['client_name']) ?></td>
+                          <td><?= htmlspecialchars($booking['provider_name']) ?></td>
+                          <td><?= htmlspecialchars($booking['booking_date']) ?></td>
+                          <td><span class="badge <?= $booking['status'] === 'completed' ? 'bg-success' : ($booking['status'] === 'cancelled' ? 'bg-danger' : 'bg-warning') ?>"><?= ucfirst($booking['status']) ?></span></td>
+                          <td>
+                            <a href="admin_bookings.php" class="btn btn-sm btn-outline-primary">Manage</a>
+                          </td>
+                        </tr>
+                      <?php endwhile; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="text-center mt-4">
+                <a href="admin_bookings.php" class="btn btn-primary">View All Bookings</a>
+              </div>
+            </div>
+
+            <!-- Reviews Tab -->
+            <div class="tab-pane fade" id="reviews" role="tabpanel">
+              <div class="table-container">
+                <div class="table-responsive">
+                  <table class="table table-dark align-middle">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Service</th>
+                        <th>Client</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php 
+                      $recent_reviews = mysqli_query($conn, "
+                        SELECT r.*, s.title as service_title, u.name as client_name 
+                        FROM reviews r 
+                        JOIN services s ON r.service_id = s.id 
+                        JOIN users u ON r.client_id = u.id 
+                        ORDER BY r.created_at DESC 
+                        LIMIT 5
+                      ");
+                      while($review = mysqli_fetch_assoc($recent_reviews)): 
+                      ?>
+                        <tr>
+                          <td><?= $review['id'] ?></td>
+                          <td><?= htmlspecialchars($review['service_title']) ?></td>
+                          <td><?= htmlspecialchars($review['client_name']) ?></td>
+                          <td>
+                            <div class="text-warning">
+                              <?php for($i = 1; $i <= 5; $i++): ?>
+                                <i class="bi bi-star<?= $i <= $review['rating'] ? '-fill' : '' ?>"></i>
+                              <?php endfor; ?>
+                            </div>
+                          </td>
+                          <td><?= htmlspecialchars(substr($review['comment'], 0, 50)) ?>...</td>
+                          <td><?= date('Y-m-d', strtotime($review['created_at'])) ?></td>
+                          <td>
+                            <a href="admin_reviews.php" class="btn btn-sm btn-outline-primary">Manage</a>
+                          </td>
+                        </tr>
+                      <?php endwhile; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="text-center mt-4">
+                <a href="admin_reviews.php" class="btn btn-primary">View All Reviews</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <footer class="footer-glass text-center py-4 mt-5">
-    <small>&copy; <?php echo date('Y'); ?> Logistics & Moving Booking System. All rights reserved.</small>
+  <!-- Quick Actions Section -->
+  <section class="container-fluid py-6 section-gradient">
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-10">
+        <h2 class="gradient-text mb-4 text-center">Quick Actions</h2>
+      </div>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-glass-card text-center">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-people"></i>
+              </div>
+              <h4 class="gradient-text mb-3">Manage Users</h4>
+              <p>View, edit, and manage all platform users including clients and providers.</p>
+              <a href="admin_users.php" class="btn btn-outline-primary">Go to Users</a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-glass-card text-center">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-gear"></i>
+              </div>
+              <h4 class="gradient-text mb-3">Manage Services</h4>
+              <p>Oversee all services offered by providers on the platform.</p>
+              <a href="admin_services.php" class="btn btn-outline-primary">Go to Services</a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-glass-card text-center">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-calendar-check"></i>
+              </div>
+              <h4 class="gradient-text mb-3">Manage Bookings</h4>
+              <p>Monitor and manage all bookings and transactions on the platform.</p>
+              <a href="admin_bookings.php" class="btn btn-outline-primary">Go to Bookings</a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="feature-glass-card text-center">
+              <div class="feature-icon mb-3">
+                <i class="bi bi-star"></i>
+              </div>
+              <h4 class="gradient-text mb-3">Manage Reviews</h4>
+              <p>Oversee customer reviews and maintain platform quality standards.</p>
+              <a href="admin_reviews.php" class="btn btn-outline-primary">Go to Reviews</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer-glass text-center py-4">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <p class="mb-2">&copy; <?php echo date('Y'); ?> Logistics & Moving Booking System. All rights reserved.</p>
+          <p class="mb-0">
+            <a href="#privacy" class="text-decoration-none me-3">Privacy Policy</a>
+            <a href="#terms" class="text-decoration-none me-3">Terms of Service</a>
+            <a href="#contact" class="text-decoration-none">Contact Us</a>
+          </p>
+        </div>
+      </div>
+    </div>
   </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../assets/js/main.js"></script>
 </body>

@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="modern-bg">
 <nav class="navbar navbar-expand-lg navbar-glass shadow-sm sticky-top">
-  <div class="container">
+  <div class="container-fluid">
     <a class="navbar-brand fw-bold fs-3 gradient-text" href="dashboard_provider.php">Provider<span class="text-primary">&</span>Dashboard</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#providerNav">
       <span class="navbar-toggler-icon"></span>
@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 </nav>
-<section class="container py-5">
-  <div class="glass-card p-4 mb-4" style="max-width:600px;margin:auto;">
+<section class="container-fluid py-4 section-glass">
+  <div class="glass-card p-4 mb-4" style="width: 100%; margin: 0; max-width: 600px; margin: auto;">
     <h2 class="gradient-text mb-3">My Profile</h2>
     <?php if ($error): ?><div class="alert alert-danger"> <?= $error ?> </div><?php endif; ?>
     <?php if ($success): ?><div class="alert alert-success"> <?= $success ?> </div><?php endif; ?>

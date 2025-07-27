@@ -62,37 +62,53 @@ $bookings = mysqli_query($conn, "SELECT b.*, u.name AS client_name, u.email AS c
   </div>
 </section>
 
-<section class="container-fluid py-4 section-glass">
-  <div class="glass-card p-4 mb-4">
-    <h2 class="gradient-text mb-3">My Bookings</h2>
-    <div class="table-responsive">
-      <table class="table admin-table align-middle">
-        <thead><tr><th>ID</th><th>Service</th><th>Client</th><th>Email</th><th>Date</th><th>Status</th><th>Details</th><th>Created</th><th>Update Status</th></tr></thead>
-        <tbody>
-        <?php while($b = mysqli_fetch_assoc($bookings)): ?>
-          <tr>
-            <td><?= $b['id'] ?></td>
-            <td><?= htmlspecialchars($b['service_title']) ?></td>
-            <td><?= htmlspecialchars($b['client_name']) ?></td>
-            <td><?= htmlspecialchars($b['client_email']) ?></td>
-            <td><?= htmlspecialchars($b['booking_date']) ?></td>
-            <td><span class="badge <?= $b['status']==='completed'?'bg-success':($b['status']==='cancelled'?'bg-danger':'bg-secondary') ?>"><?= ucfirst($b['status']) ?></span></td>
-            <td><?= htmlspecialchars($b['details']) ?></td>
-            <td><?= date('Y-m-d', strtotime($b['created_at'])) ?></td>
-            <td>
-              <form method="POST" class="d-inline">
-                <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                <select name="new_status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
-                  <?php foreach(['pending','confirmed','in_progress','completed','cancelled'] as $status): ?>
-                    <option value="<?= $status ?>" <?= $b['status']===$status?'selected':'' ?>><?= ucfirst($status) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </form>
-            </td>
-          </tr>
-        <?php endwhile; ?>
-        </tbody>
-      </table>
+<section class="container-fluid py-6 section-glass">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="glass-card" style="margin:0;padding:0;">
+        <h2 class="gradient-text mb-4 text-center">My Bookings</h2>
+        <?php if (isset($error)): ?>
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($error) ?>
+          </div>
+        <?php endif; ?>
+        <?php if (isset($success)): ?>
+          <div class="alert alert-success" role="alert">
+            <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($success) ?>
+          </div>
+        <?php endif; ?>
+        <div class="table-container">
+          <div class="table-responsive" style="width:100%;margin:0;padding:0;">
+            <table class="table table-dark align-middle" style="width:100%;min-width:100%;">
+            <thead><tr><th>ID</th><th>Service</th><th>Client</th><th>Email</th><th>Date</th><th>Status</th><th>Details</th><th>Created</th><th>Update Status</th></tr></thead>
+            <tbody>
+            <?php while($b = mysqli_fetch_assoc($bookings)): ?>
+              <tr>
+                <td><?= $b['id'] ?></td>
+                <td><?= htmlspecialchars($b['service_title']) ?></td>
+                <td><?= htmlspecialchars($b['client_name']) ?></td>
+                <td><?= htmlspecialchars($b['client_email']) ?></td>
+                <td><?= htmlspecialchars($b['booking_date']) ?></td>
+                <td><span class="badge <?= $b['status']==='completed'?'bg-success':($b['status']==='cancelled'?'bg-danger':'bg-secondary') ?>"><?= ucfirst($b['status']) ?></span></td>
+                <td><?= htmlspecialchars($b['details']) ?></td>
+                <td><?= date('Y-m-d', strtotime($b['created_at'])) ?></td>
+                <td>
+                  <form method="POST" class="d-inline">
+                    <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
+                    <select name="new_status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
+                      <?php foreach(['pending','confirmed','in_progress','completed','cancelled'] as $status): ?>
+                        <option value="<?= $status ?>" <?= $b['status']===$status?'selected':'' ?>><?= ucfirst($status) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </form>
+                </td>
+              </tr>
+            <?php endwhile; ?>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>

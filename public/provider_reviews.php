@@ -36,24 +36,40 @@ $reviews = mysqli_query($conn, "SELECT r.*, u.name AS client_name FROM reviews r
     </div>
   </div>
 </nav>
-<section class="container py-5">
-  <div class="glass-card p-4 mb-4">
-    <h2 class="gradient-text mb-3">My Reviews</h2>
-    <div class="table-responsive">
-      <table class="table admin-table align-middle">
-        <thead><tr><th>ID</th><th>Client</th><th>Rating</th><th>Comment</th><th>Date</th></tr></thead>
-        <tbody>
-        <?php while($r = mysqli_fetch_assoc($reviews)): ?>
-          <tr>
-            <td><?= $r['id'] ?></td>
-            <td><?= htmlspecialchars($r['client_name']) ?></td>
-            <td><span class="badge bg-warning text-dark fs-6">★ <?= $r['rating'] ?></span></td>
-            <td><?= htmlspecialchars($r['comment']) ?></td>
-            <td><?= date('Y-m-d', strtotime($r['created_at'])) ?></td>
-          </tr>
-        <?php endwhile; ?>
-        </tbody>
-      </table>
+<section class="container-fluid py-6 section-glass">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="glass-card" style="width:100%;margin:0;padding:0;">
+        <h2 class="gradient-text mb-4 text-center">My Reviews</h2>
+        <?php if (isset($error)): ?>
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($error) ?>
+          </div>
+        <?php endif; ?>
+        <?php if (isset($success)): ?>
+          <div class="alert alert-success" role="alert">
+            <i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($success) ?>
+          </div>
+        <?php endif; ?>
+        <div class="table-container">
+          <div class="table-responsive" style="width:100%;margin:0;padding:0;">
+            <table class="table table-dark align-middle" style="width:100%;min-width:100%;">
+            <thead><tr><th>ID</th><th>Client</th><th>Rating</th><th>Comment</th><th>Date</th></tr></thead>
+            <tbody>
+            <?php while($r = mysqli_fetch_assoc($reviews)): ?>
+              <tr>
+                <td><?= $r['id'] ?></td>
+                <td><?= htmlspecialchars($r['client_name']) ?></td>
+                <td><span class="badge bg-warning text-dark fs-6">★ <?= $r['rating'] ?></span></td>
+                <td><?= htmlspecialchars($r['comment']) ?></td>
+                <td><?= date('Y-m-d', strtotime($r['created_at'])) ?></td>
+              </tr>
+            <?php endwhile; ?>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>

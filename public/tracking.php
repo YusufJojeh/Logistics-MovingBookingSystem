@@ -58,7 +58,7 @@ if ($tracking) {
   <div class="container-fluid">
     <div class="row justify-content-center">
       <div class="col-lg-8">
-        <div class="glass-card p-5 mb-4">
+        <div class="glass-card p-5 mb-4" style="width: 100%; margin: 0;">
           <h1 class="display-4 fw-black mb-3 gradient-text">Track Your Booking</h1>
           <p class="lead mb-4 text-body-secondary">Enter your booking or tracking number to view the latest status and route.</p>
           <form class="row g-3 justify-content-center" method="get" action="">
@@ -79,7 +79,7 @@ if ($tracking) {
 </section>
 <?php if ($tracking && $details): ?>
 <section class="container-fluid py-4 section-glass">
-  <div class="glass-card p-4 mb-4 text-center">
+  <div class="glass-card p-4 mb-4 text-center" style="width: 100%; margin: 0;">
     <h2 class="gradient-text mb-3">Status: <?= htmlspecialchars($status) ?></h2>
     <div class="row mb-3">
       <div class="col-md-6 text-start"><b>From:</b> <?= htmlspecialchars($details['from']) ?></div>
