@@ -52,6 +52,11 @@ $providers = mysqli_query($conn, "SELECT * FROM users $where ORDER BY created_at
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .table-responsive {
+        overflow-y: visible;
+    }
+    </style>
 </head>
 <body class="modern-bg">
   <!-- Professional Navigation -->
