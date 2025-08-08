@@ -343,8 +343,8 @@ function js_escape($string) {
                                         <td><span class="badge bg-secondary">#<?= htmlspecialchars($row['id']) ?></span></td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="user-avatar me-3"><i class="bi bi-person"></i></div>
-                                                <div>
+                                                <?= get_profile_image_html($row, 'small', false) ?>
+                                                <div class="ms-3">
                                                     <div class="fw-semibold"><?= htmlspecialchars($row['name']) ?></div>
                                                     <small class="text-muted"><?= htmlspecialchars($row['email']) ?></small>
                                                 </div>

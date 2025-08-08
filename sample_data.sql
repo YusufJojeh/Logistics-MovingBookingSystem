@@ -17,6 +17,7 @@ CREATE TABLE users (
   role ENUM('client','provider','admin') NOT NULL DEFAULT 'client',
   phone VARCHAR(30),
   company_name VARCHAR(100),
+  profile_image VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   status ENUM('active','inactive') DEFAULT 'active',
   rating DECIMAL(2,1) DEFAULT 0.0

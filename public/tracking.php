@@ -76,8 +76,9 @@ if ($tracking) {
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-glass shadow-sm sticky-top">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold fs-3 gradient-text" href="/index.php">
-      <i class="bi bi-truck me-1"></i>Logistics<span class="text-primary">&</span>Moving
+    <a class="navbar-brand fw-bold fs-3" href="/index.php">
+      <img src="../assets/img/logo.svg" alt="MovePro Logo" class="logo-svg">
+      <span class="logo-text-white">Move</span><span class="logo-text-blue">Pro</span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>

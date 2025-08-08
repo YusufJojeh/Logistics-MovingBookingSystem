@@ -254,7 +254,14 @@ $roleBadge   = roleBadge($user['role']);
           </div>
 
           <div class="row g-4">
-            <div class="col-md-6 me-2 ">
+            <div class="col-md-3">
+              <div class="text-center mb-4">
+                <?= get_profile_image_html($user, 'large', false) ?>
+                <h4 class="mt-3 mb-1"><?= e($user['name']) ?></h4>
+                <p class="text-muted mb-0">User #<?= e($user['id']) ?></p>
+              </div>
+            </div>
+            <div class="col-md-6">
               <div class="kpi-card text-left h-100">
                 <div class="kpi-icon mb-3"><i class="bi bi-person"></i></div>
                 <h4 class="mb-2">User Info</h4>

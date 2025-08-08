@@ -158,8 +158,9 @@ function js_escape($string) {
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-glass">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold fs-3 gradient-text" href="admin.php">
-                <i class="bi bi-shield-check me-2"></i>Admin<span class="text-gradient-secondary">&amp;</span>Dashboard
+            <a class="navbar-brand fw-bold fs-3" href="admin.php">
+              <img src="../assets/img/logo.svg" alt="MovePro Admin Logo" class="logo-svg">
+              <span class="logo-text-white">MovePro</span><span class="logo-text-blue">Admin</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
                 <span class="navbar-toggler-icon"></span>

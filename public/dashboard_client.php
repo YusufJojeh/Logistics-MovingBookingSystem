@@ -33,8 +33,9 @@ $recent_reviews = mysqli_query($conn, "SELECT r.*, p.name AS provider_name FROM 
   <!-- Professional Navigation -->
   <nav class="navbar navbar-expand-lg navbar-glass">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold fs-3 gradient-text" href="dashboard_client.php">
-        <i class="bi bi-person me-2"></i>Client<span class="text-gradient-secondary">&</span>Dashboard
+      <a class="navbar-brand fw-bold fs-3" href="dashboard_client.php">
+        <img src="../assets/img/logo.svg" alt="MovePro Client Logo" class="logo-svg">
+        <span class="logo-text-white">MovePro</span><span class="logo-text-blue">Client</span>
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#clientNav">
         <span class="navbar-toggler-icon"></span>
@@ -46,7 +47,19 @@ $recent_reviews = mysqli_query($conn, "SELECT r.*, p.name AS provider_name FROM 
           <li class="nav-item"><a class="nav-link" href="client_bookings.php">My Bookings</a></li>
           <li class="nav-item"><a class="nav-link" href="client_reviews.php">My Reviews</a></li>
           <li class="nav-item"><a class="nav-link" href="client_profile.php">Profile</a></li>
-          <li class="nav-item ms-3"><a class="btn btn-primary px-4" href="logout.php">Logout</a></li>
+          <li class="nav-item ms-3">
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <?= get_profile_image_html($user, 'small', false) ?>
+                <span class="ms-2"><?= htmlspecialchars($user['name']) ?></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="client_profile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+              </ul>
+            </div>
+          </li>
         </ul>
       </div>
     </div>

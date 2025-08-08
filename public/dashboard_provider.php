@@ -64,8 +64,9 @@ $recent_reviews = mysqli_query($conn, "
   <!-- Professional Navigation -->
   <nav class="navbar navbar-expand-lg navbar-glass">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold fs-3 gradient-text" href="dashboard_provider.php">
-        <i class="bi bi-building me-2"></i>Provider<span class="text-gradient-secondary">&</span>Dashboard
+      <a class="navbar-brand fw-bold fs-3" href="dashboard_provider.php">
+        <img src="../assets/img/logo.svg" alt="MovePro Provider Logo" class="logo-svg">
+        <span class="logo-text-white">MovePro</span><span class="logo-text-blue">Provider</span>
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#providerNav">
         <span class="navbar-toggler-icon"></span>
@@ -77,7 +78,19 @@ $recent_reviews = mysqli_query($conn, "
           <li class="nav-item"><a class="nav-link" href="provider_bookings.php">Bookings</a></li>
           <li class="nav-item"><a class="nav-link" href="provider_reviews.php">Reviews</a></li>
           <li class="nav-item"><a class="nav-link" href="provider_profile.php">Profile</a></li>
-          <li class="nav-item ms-3"><a class="btn btn-primary px-4" href="logout.php">Logout</a></li>
+          <li class="nav-item ms-3">
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <?= get_profile_image_html($user, 'small', false) ?>
+                <span class="ms-2"><?= htmlspecialchars($user['name']) ?></span>
+              </a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="provider_profile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+              </ul>
+            </div>
+          </li>
         </ul>
       </div>
     </div>
