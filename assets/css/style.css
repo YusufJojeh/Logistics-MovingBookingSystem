@@ -109,7 +109,7 @@ body {
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Z-Index */
-  --z-dropdown: 1000;
+  --z-dropdown: 2000;
   --z-sticky: 1020;
   --z-fixed: 1030;
   --z-modal-backdrop: 1040;
@@ -208,7 +208,8 @@ section {
   margin-bottom: var(--spacing-2xl);
   transition: all var(--transition-normal);
   position: relative;
-  overflow: hidden;
+  /* Allow dropdowns, tooltips to escape the card */
+  overflow: visible;
 }
 
 .glass-card::before {
@@ -448,7 +449,8 @@ section {
 .table-container {
   background: linear-gradient(135deg, rgba(79, 134, 198, 0.15) 0%, rgba(123, 167, 217, 0.1) 100%);
   border-radius: var(--radius-3xl);
-  overflow: hidden;
+  /* Avoid clipping dropdown menus */
+  overflow: visible;
   margin: var(--spacing-lg) 0;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -472,7 +474,8 @@ section {
   max-width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
-  overflow: auto !important;
+  /* Allow dropdowns to escape scroll container */
+  overflow: visible !important;
   border-radius: var(--radius-3xl);
   max-height: 600px;
 }
@@ -513,7 +516,7 @@ section {
   border: none;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 5; /* keep below dropdowns */
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   background: transparent;
 }
@@ -686,6 +689,7 @@ section {
 .table .actions-cell {
   text-align: center;
   white-space: nowrap;
+  position: relative;
 }
 
 .table .actions-cell .btn {
@@ -1744,6 +1748,9 @@ section {
   border: 1px solid var(--glass-card-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  /* Keep dropdowns above glass/table scroll */
+  z-index: var(--z-dropdown);
+  position: absolute;
 }
 
 .btn-group .dropdown-item {

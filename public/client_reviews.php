@@ -5,38 +5,82 @@ if (!is_client()) { header('Location: /login.php'); exit; }
 $user = current_user();
 $client_id = $user['id'];
 
-// Handle add/edit review
+// Handle add/edit/delete review
 $success = $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['booking_id'], $_POST['provider_id'], $_POST['rating'], $_POST['comment']) && !isset($_POST['review_id'])) {
-        // Add new review
-        $booking_id = intval($_POST['booking_id']);
-        $provider_id = intval($_POST['provider_id']);
-        $rating = intval($_POST['rating']);
-        $comment = trim($_POST['comment']);
-        // Check if already reviewed
-        $exists = mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM reviews WHERE booking_id=$booking_id AND reviewer_id=$client_id"))[0];
-        if ($exists) {
-            $error = 'You have already reviewed this booking.';
-        } else {
-            $stmt = mysqli_prepare($conn, "INSERT INTO reviews (booking_id, reviewer_id, provider_id, rating, comment) VALUES (?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'iiiis', $booking_id, $client_id, $provider_id, $rating, $comment);
-            mysqli_stmt_execute($stmt);
+    // Delete
+    if (isset($_POST['delete_review_id'])) {
+        $delete_id = (int)$_POST['delete_review_id'];
+        if ($delete_id > 0) {
+            $stmt = mysqli_prepare($conn, 'DELETE FROM reviews WHERE id = ? AND reviewer_id = ?');
+            mysqli_stmt_bind_param($stmt, 'ii', $delete_id, $client_id);
+            if (mysqli_stmt_execute($stmt)) {
+                $success = 'Review deleted successfully!';
+            } else {
+                $error = 'Failed to delete the review. Please try again.';
+            }
             mysqli_stmt_close($stmt);
-            $success = 'Review submitted successfully!';
         }
-    } elseif (isset($_POST['review_id'], $_POST['rating'], $_POST['comment'])) {
-        // Edit existing review
-        $review_id = intval($_POST['review_id']);
-        $rating = intval($_POST['rating']);
+    }
+    // Add
+    elseif (isset($_POST['booking_id'], $_POST['provider_id'], $_POST['rating'], $_POST['comment']) && !isset($_POST['review_id'])) {
+        $booking_id = (int)$_POST['booking_id'];
+        $provider_id = (int)$_POST['provider_id'];
+        $rating = (int)$_POST['rating'];
         $comment = trim($_POST['comment']);
-        
-        if ($rating >= 1 && $rating <= 5 && $comment) {
-            $stmt = mysqli_prepare($conn, "UPDATE reviews SET rating=?, comment=? WHERE id=? AND reviewer_id=?");
-            mysqli_stmt_bind_param($stmt, 'isis', $rating, $comment, $review_id, $client_id);
-            mysqli_stmt_execute($stmt);
+
+        if ($rating < 1 || $rating > 5 || $comment === '') {
+            $error = 'Please provide a valid rating (1-5) and a comment.';
+        } else {
+            // Ensure booking belongs to this client, matches provider, and is completed
+            $chk = mysqli_prepare($conn, "SELECT id FROM bookings WHERE id=? AND client_id=? AND provider_id=? AND status='completed' LIMIT 1");
+            mysqli_stmt_bind_param($chk, 'iii', $booking_id, $client_id, $provider_id);
+            mysqli_stmt_execute($chk);
+            $chk_res = mysqli_stmt_get_result($chk);
+            if (!$chk_res || mysqli_num_rows($chk_res) === 0) {
+                $error = 'Invalid booking for review. Only completed bookings can be reviewed.';
+            }
+            mysqli_stmt_close($chk);
+
+            if (!$error) {
+                // Check if already reviewed
+                $exists_stmt = mysqli_prepare($conn, 'SELECT COUNT(*) FROM reviews WHERE booking_id = ? AND reviewer_id = ?');
+                mysqli_stmt_bind_param($exists_stmt, 'ii', $booking_id, $client_id);
+                mysqli_stmt_execute($exists_stmt);
+                mysqli_stmt_bind_result($exists_stmt, $already_cnt);
+                mysqli_stmt_fetch($exists_stmt);
+                mysqli_stmt_close($exists_stmt);
+
+                if (!empty($already_cnt)) {
+                    $error = 'You have already reviewed this booking.';
+                } else {
+                    $ins = mysqli_prepare($conn, 'INSERT INTO reviews (booking_id, reviewer_id, provider_id, rating, comment, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
+                    mysqli_stmt_bind_param($ins, 'iiiis', $booking_id, $client_id, $provider_id, $rating, $comment);
+                    if (mysqli_stmt_execute($ins)) {
+                        $success = 'Review submitted successfully!';
+                    } else {
+                        $error = 'Failed to submit review. Please try again.';
+                    }
+                    mysqli_stmt_close($ins);
+                }
+            }
+        }
+    }
+    // Edit
+    elseif (isset($_POST['review_id'], $_POST['rating'], $_POST['comment'])) {
+        $review_id = (int)$_POST['review_id'];
+        $rating = (int)$_POST['rating'];
+        $comment = trim($_POST['comment']);
+
+        if ($rating >= 1 && $rating <= 5 && $comment !== '') {
+            $stmt = mysqli_prepare($conn, 'UPDATE reviews SET rating = ?, comment = ? WHERE id = ? AND reviewer_id = ?');
+            mysqli_stmt_bind_param($stmt, 'isii', $rating, $comment, $review_id, $client_id);
+            if (mysqli_stmt_execute($stmt)) {
+                $success = 'Review updated successfully!';
+            } else {
+                $error = 'Failed to update the review. Please try again.';
+            }
             mysqli_stmt_close($stmt);
-            $success = 'Review updated successfully!';
         } else {
             $error = 'Please provide valid rating and comment.';
         }
@@ -565,8 +609,13 @@ $reviews = mysqli_query($conn, "SELECT r.*, u.name AS provider_name, s.title as 
     // Delete review
     function deleteReview(reviewId) {
       if (confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-        // This would typically submit a delete request
-        alert('Delete review for ID: ' + reviewId);
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+          <input type="hidden" name="delete_review_id" value="${reviewId}">
+        `;
+        document.body.appendChild(form);
+        form.submit();
       }
     }
   </script>

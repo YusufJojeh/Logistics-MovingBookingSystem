@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initTables();
     initForms();
     initModals();
+    initTableDropdowns();
     initToastSystem();
     initKPICards();
     initFAQAccordion();
@@ -195,6 +196,16 @@ function initTables() {
     const tables = document.querySelectorAll('.table');
     
     tables.forEach(table => {
+        // Ensure parent containers don't clip dropdowns
+        const container = table.closest('.table-container');
+        if (container) {
+            container.style.overflow = 'visible';
+        }
+        const responsive = table.closest('.table-responsive');
+        if (responsive) {
+            responsive.style.overflow = 'visible';
+        }
+
         // Add sorting functionality
         const headers = table.querySelectorAll('th[data-sort]');
         headers.forEach(header => {
@@ -660,6 +671,32 @@ function initEnhancedComponents() {
     
     // Enhanced form components
     initEnhancedFormComponents();
+}
+
+// Ensure dropdowns inside tables are always visible and not clipped
+function initTableDropdowns() {
+    try {
+        var toggles = document.querySelectorAll('.table [data-bs-toggle="dropdown"]');
+        toggles.forEach(function(toggle) {
+            // Recreate dropdown with safe config
+            try {
+                new bootstrap.Dropdown(toggle, {
+                    boundary: 'viewport',
+                    popperConfig: {
+                        strategy: 'fixed',
+                        modifiers: [
+                            { name: 'computeStyles', options: { gpuAcceleration: false } },
+                            { name: 'preventOverflow', options: { boundary: document.body } }
+                        ]
+                    }
+                });
+            } catch (e) {
+                // Ignore individual failures
+            }
+        });
+    } catch (e) {
+        // No-op
+    }
 }
 
 function initEnhancedKPICards() {
