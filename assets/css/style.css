@@ -1867,10 +1867,12 @@ section {
 /* ===================================
    ENSURE ALL TEXT IS WHITE
    =================================== */
-body, html, h1, h2, h3, h4, h5, h6, p, span, div, a, small, strong, em, li, ul, ol, label, input, textarea, select, option, .text-body, .text-body-secondary, .text-dark, .text-muted, .text-black, .fw-bold, .fw-black, .navbar-brand, .nav-link, .btn, .badge, .form-control, .form-select, .table, .table th, .table td, .modal-title, .modal-body, .modal-footer, .accordion-button, .accordion-body, .toast, .toast-header, .toast-body {
+body, html, h1, h2, h3, h4, h5, h6, p, span, div, a, small, strong, em, li, ul, ol, label, input, textarea, select,  .text-body, .text-body-secondary, .text-dark, .text-muted, .text-black, .fw-bold, .fw-black, .navbar-brand, .nav-link, .btn, .badge, .form-control, .form-select, .table, .table th, .table td, .modal-title, .modal-body, .modal-footer, .accordion-button, .accordion-body, .toast, .toast-header, .toast-body {
   color: #ffffff !important;
 }
-
+option{
+  color: #000000 !important;
+}
 /* Ensure buttons maintain white text */
 .btn-primary, .btn-outline-primary, .btn-success, .btn-warning, .btn-danger, .btn-info {
   color: #ffffff !important;
@@ -1910,7 +1912,7 @@ body, html, h1, h2, h3, h4, h5, h6, p, span, div, a, small, strong, em, li, ul, 
 
 /* Ensure badge text is white */
 .badge {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
 /* Ensure tab text is white */

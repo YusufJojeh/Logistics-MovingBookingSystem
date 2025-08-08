@@ -227,223 +227,209 @@ if ($revenue_data = mysqli_fetch_assoc($recent_revenue)) {
 
   <!-- Management Section -->
   <section class="container-fluid py-6 section-glass">
-    <div class="row justify-content-center mb-5">
-      <div class="col-lg-10">
-        <h2 class="gradient-text mb-4 text-center">Platform Management</h2>
-      </div>
+  <div class="row justify-content-center mb-5">
+    <div class="col-lg-10">
+      <h2 class="gradient-text mb-4 text-center">Platform Management</h2>
     </div>
-    <div class="row justify-content-center">
-      <div class="col-lg-10">
-        <div class="glass-card">
-          <ul class="nav nav-tabs" id="adminTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
-                <i class="bi bi-people me-2"></i>Users
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
-                <i class="bi bi-gear me-2"></i>Services
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">
-                <i class="bi bi-calendar-check me-2"></i>Bookings
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
-                <i class="bi bi-star me-2"></i>Reviews
-              </button>
-            </li>
-          </ul>
-          
-          <div class="tab-content" id="adminTabsContent">
-            <!-- Users Tab -->
-            <div class="tab-pane fade show active" id="users" role="tabpanel">
-              <div class="table-container">
-                <div class="table-responsive">
-                  <table class="table table-dark align-middle">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Registered</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php while($user = mysqli_fetch_assoc($recent_users)): ?>
-                        <tr>
-                          <td><?= $user['id'] ?></td>
-                          <td><?= htmlspecialchars($user['name']) ?></td>
-                          <td><?= htmlspecialchars($user['email']) ?></td>
-                          <td><span class="badge <?= $user['role'] === 'provider' ? 'bg-info' : 'bg-secondary' ?>"><?= ucfirst($user['role']) ?></span></td>
-                          <td><span class="badge <?= $user['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>"><?= ucfirst($user['status']) ?></span></td>
-                          <td><?= date('Y-m-d', strtotime($user['created_at'])) ?></td>
-                          <td>
-                            <a href="admin_users.php" class="btn btn-sm btn-outline-primary">Manage</a>
-                          </td>
-                        </tr>
-                      <?php endwhile; ?>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="text-center mt-4">
-                <a href="admin_users.php" class="btn btn-primary">View All Users</a>
-              </div>
-            </div>
+  </div>
 
-            <!-- Services Tab -->
-            <div class="tab-pane fade" id="services" role="tabpanel">
-              <div class="table-container">
-                <div class="table-responsive">
-                  <table class="table table-dark align-middle">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Provider</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php 
-                      $recent_services = mysqli_query($conn, "
-                        SELECT s.*, u.name as provider_name 
-                        FROM services s 
-                        JOIN users u ON s.provider_id = u.id 
-                        ORDER BY s.created_at DESC 
-                        LIMIT 5
-                      ");
-                      while($service = mysqli_fetch_assoc($recent_services)): 
-                      ?>
-                        <tr>
-                          <td><?= $service['id'] ?></td>
-                          <td><?= htmlspecialchars($service['title']) ?></td>
-                          <td><?= htmlspecialchars($service['provider_name']) ?></td>
-                          <td><?= htmlspecialchars($service['category']) ?></td>
-                          <td>$<?= number_format($service['price'], 2) ?></td>
-                          <td><span class="badge <?= $service['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>"><?= ucfirst($service['status']) ?></span></td>
-                          <td>
-                            <a href="admin_services.php" class="btn btn-sm btn-outline-primary">Manage</a>
-                          </td>
-                        </tr>
-                      <?php endwhile; ?>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="text-center mt-4">
-                <a href="admin_services.php" class="btn btn-primary">View All Services</a>
-              </div>
-            </div>
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="glass-card">
+        <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+              <i class="bi bi-people me-2"></i>Users
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
+              <i class="bi bi-gear me-2"></i>Services
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">
+              <i class="bi bi-calendar-check me-2"></i>Bookings
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+              <i class="bi bi-star me-2"></i>Reviews
+            </button>
+          </li>
+        </ul>
 
-            <!-- Bookings Tab -->
-            <div class="tab-pane fade" id="bookings" role="tabpanel">
-              <div class="table-container">
-                <div class="table-responsive">
-                  <table class="table table-dark align-middle">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Service</th>
-                        <th>Client</th>
-                        <th>Provider</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php while($booking = mysqli_fetch_assoc($recent_bookings)): ?>
-                        <tr>
-                          <td><?= $booking['id'] ?></td>
-                          <td><?= htmlspecialchars($booking['service_title']) ?></td>
-                          <td><?= htmlspecialchars($booking['client_name']) ?></td>
-                          <td><?= htmlspecialchars($booking['provider_name']) ?></td>
-                          <td><?= htmlspecialchars($booking['booking_date']) ?></td>
-                          <td><span class="badge <?= $booking['status'] === 'completed' ? 'bg-success' : ($booking['status'] === 'cancelled' ? 'bg-danger' : 'bg-warning') ?>"><?= ucfirst($booking['status']) ?></span></td>
-                          <td>
-                            <a href="admin_bookings.php" class="btn btn-sm btn-outline-primary">Manage</a>
-                          </td>
-                        </tr>
-                      <?php endwhile; ?>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="text-center mt-4">
-                <a href="admin_bookings.php" class="btn btn-primary">View All Bookings</a>
-              </div>
-            </div>
+        <div class="tab-content" id="adminTabsContent">
 
-            <!-- Reviews Tab -->
-            <div class="tab-pane fade" id="reviews" role="tabpanel">
-              <div class="table-container">
-                <div class="table-responsive">
-                  <table class="table table-dark align-middle">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Service</th>
-                        <th>Client</th>
-                        <th>Rating</th>
-                        <th>Comment</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php 
-                      $recent_reviews = mysqli_query($conn, "
-                        SELECT r.*, s.title as service_title, u.name as client_name 
-                        FROM reviews r 
-                        JOIN services s ON r.service_id = s.id 
-                        JOIN users u ON r.client_id = u.id 
-                        ORDER BY r.created_at DESC 
-                        LIMIT 5
-                      ");
-                      while($review = mysqli_fetch_assoc($recent_reviews)): 
-                      ?>
-                        <tr>
-                          <td><?= $review['id'] ?></td>
-                          <td><?= htmlspecialchars($review['service_title']) ?></td>
-                          <td><?= htmlspecialchars($review['client_name']) ?></td>
-                          <td>
-                            <div class="text-warning">
-                              <?php for($i = 1; $i <= 5; $i++): ?>
-                                <i class="bi bi-star<?= $i <= $review['rating'] ? '-fill' : '' ?>"></i>
-                              <?php endfor; ?>
-                            </div>
-                          </td>
-                          <td><?= htmlspecialchars(substr($review['comment'], 0, 50)) ?>...</td>
-                          <td><?= date('Y-m-d', strtotime($review['created_at'])) ?></td>
-                          <td>
-                            <a href="admin_reviews.php" class="btn btn-sm btn-outline-primary">Manage</a>
-                          </td>
-                        </tr>
-                      <?php endwhile; ?>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="text-center mt-4">
-                <a href="admin_reviews.php" class="btn btn-primary">View All Reviews</a>
-              </div>
+          <!-- USERS TAB -->
+          <div class="tab-pane fade show active" id="users" role="tabpanel">
+            <div class="table-responsive mt-4">
+              <table class="table table-dark table-bordered text-center align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Registered</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php while($user = mysqli_fetch_assoc($recent_users)): ?>
+                    <tr>
+                      <td><?= $user['id'] ?></td>
+                      <td><?= htmlspecialchars($user['name']) ?></td>
+                      <td><?= htmlspecialchars($user['email']) ?></td>
+                      <td>
+                        <span class="badge <?= $user['role'] === 'provider' ? 'bg-info' : 'bg-secondary' ?>">
+                          <?= ucfirst($user['role']) ?>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge <?= $user['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>">
+                          <?= ucfirst($user['status']) ?>
+                        </span>
+                      </td>
+                      <td><?= date('Y-m-d', strtotime($user['created_at'])) ?></td>
+                      <td>
+                        <a href="admin_user_view.php?id=<?= $user['id'] ?>" class="btn btn-sm btn-outline-primary">Manage</a>
+                      </td>
+                    </tr>
+                  <?php endwhile; ?>
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center mt-3">
+              <a href="admin_users.php" class="btn btn-primary">View All Users</a>
             </div>
           </div>
+
+          <!-- SERVICES TAB -->
+          <div class="tab-pane fade" id="services" role="tabpanel">
+            <div class="table-responsive mt-4">
+              <table class="table table-dark table-bordered text-center align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Title</th><th>Provider</th><th>description</th><th>Price</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php 
+                  $recent_services = mysqli_query($conn, "
+                    SELECT s.*, u.name AS provider_name 
+                    FROM services s 
+                    JOIN users u ON s.provider_id = u.id 
+                    ORDER BY s.created_at DESC 
+                    LIMIT 5
+                  ");
+                  while($service = mysqli_fetch_assoc($recent_services)): ?>
+                    <tr>
+                      <td><?= $service['id'] ?></td>
+                      <td><?= htmlspecialchars($service['title']) ?></td>
+                      <td><?= htmlspecialchars($service['provider_name']) ?></td>
+                      <td><?= htmlspecialchars($service['description']) ?></td>
+                      <td>$<?= number_format($service['price'], 2) ?></td>
+                      <td>
+                        <span class="badge <?= $service['status'] === 'active' ? 'bg-success' : 'bg-warning' ?>">
+                          <?= ucfirst($service['status']) ?>
+                        </span>
+                      </td>
+                      <td>
+                        <a href="admin_service_view.php?id=<?= $service['id'] ?>" class="btn btn-sm btn-outline-primary">Manage</a>
+                      </td>
+                    </tr>
+                  <?php endwhile; ?>
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center mt-3">
+              <a href="admin_services.php" class="btn btn-primary">View All Services</a>
+            </div>
+          </div>
+
+          <!-- BOOKINGS TAB -->
+          <div class="tab-pane fade" id="bookings" role="tabpanel">
+            <div class="table-responsive mt-4">
+              <table class="table table-dark table-bordered text-center align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Service</th><th>Client</th><th>Provider</th><th>Date</th><th>Status</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php while($booking = mysqli_fetch_assoc($recent_bookings)): ?>
+                    <tr>
+                      <td><?= $booking['id'] ?></td>
+                      <td><?= htmlspecialchars($booking['service_title']) ?></td>
+                      <td><?= htmlspecialchars($booking['client_name']) ?></td>
+                      <td><?= htmlspecialchars($booking['provider_name']) ?></td>
+                      <td><?= date('Y-m-d', strtotime($booking['created_at'])) ?></td>
+                      <td>
+                        <span class="badge <?= $booking['status'] === 'completed' ? 'bg-success' : 'bg-warning' ?>">
+                          <?= ucfirst($booking['status']) ?>
+                        </span>
+                      </td>
+                      <td>
+                        <a href="admin_bookings.php?id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-primary">Manage</a>
+                      </td>
+                    </tr>
+                  <?php endwhile; ?>
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center mt-3">
+              <a href="admin_bookings.php" class="btn btn-primary">View All Bookings</a>
+            </div>
+          </div>
+
+          <!-- REVIEWS TAB -->
+          <div class="tab-pane fade" id="reviews" role="tabpanel">
+            <div class="table-responsive mt-4">
+              <table class="table table-dark table-bordered text-center align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Service</th><th>Client</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php 
+                  $recent_reviews = mysqli_query($conn, "
+                    SELECT r.*, s.title AS service_title, u.name AS client_name 
+                    FROM reviews r 
+                    JOIN bookings b ON r.booking_id = b.id
+                    JOIN services s ON b.service_id = s.id
+                    JOIN users u ON b.client_id = u.id 
+                    ORDER BY r.created_at DESC 
+                    LIMIT 5
+                  ");
+                  while($review = mysqli_fetch_assoc($recent_reviews)): ?>
+                    <tr>
+                      <td><?= $review['id'] ?></td>
+                      <td><?= htmlspecialchars($review['service_title']) ?></td>
+                      <td><?= htmlspecialchars($review['client_name']) ?></td>
+                      <td>
+                        <span class="text-warning">
+                          <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <i class="bi bi-star<?= $i <= $review['rating'] ? '-fill' : '' ?>"></i>
+                          <?php endfor; ?>
+                        </span>
+                      </td>
+                      <td><?= htmlspecialchars(substr($review['comment'], 0, 50)) ?>...</td>
+                      <td><?= date('Y-m-d', strtotime($review['created_at'])) ?></td>
+                      <td>
+                        <a href="admin_reviews.php?id=<?= $review['id'] ?>" class="btn btn-sm btn-outline-primary">Manage</a>
+                      </td>
+                    </tr>
+                  <?php endwhile; ?>
+                </tbody>
+              </table>
+            </div>
+            <div class="text-center mt-3">
+              <a href="admin_reviews.php" class="btn btn-primary">View All Reviews</a>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- Quick Actions Section -->
   <section class="container-fluid py-6 section-gradient">
