@@ -184,8 +184,8 @@ $testimonials = mysqli_query($conn, "
             <div class="col-12 text-center text-muted">Reviews will appear here as bookings are completed.</div>
           <?php endif; ?>
         </div>
+        </div>
       </div>
-    </div>
   </section>
 
   <!-- CTA -->
@@ -213,9 +213,9 @@ $testimonials = mysqli_query($conn, "
             <a href="#terms" class="text-decoration-none me-3">Terms of Service</a>
             <a href="#contact" class="text-decoration-none">Contact Us</a>
           </p>
-        </div>
       </div>
     </div>
+  </div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

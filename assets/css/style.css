@@ -144,17 +144,14 @@ p {
   color: #ffffff;
 }
 
-.gradient-text {
-  color: #ffffff !important;
-  font-weight: 800;
-}
-
-.text-gradient-secondary {
-  color: #ffffff !important;
-}
-
+.gradient-text,
+.text-gradient-secondary,
 .text-gradient-accent {
   color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
 }
 
 /* ===================================
@@ -276,13 +273,9 @@ section {
 }
 
 .navbar-brand .logo-text-blue {
-  color: var(--primary) !important;
+  color: #ffffff !important;
   font-weight: 900;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .navbar-brand:hover {
@@ -300,10 +293,7 @@ section {
 }
 
 .navbar-brand:hover .logo-text-blue {
-  background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff !important;
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -1927,8 +1917,11 @@ section {
 }
 
 .section-gradient {
-  background: var(--gradient-primary);
-  color: #ffffff;
+  /* Replace gradient section backgrounds with glass background */
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: #ffffff !important;
 }
 
 .section-glass {
@@ -1937,7 +1930,8 @@ section {
 }
 
 .modern-bg {
-  background: linear-gradient(135deg, #4F86C6 0%, #7BA7D9 50%, #A8C6F0 100%);
+  /* Simplify global background to a subtle solid with glass sections */
+  background: #4F86C6;
   background-attachment: fixed;
   min-height: 100vh;
 }

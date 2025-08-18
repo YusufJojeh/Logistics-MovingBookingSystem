@@ -5,100 +5,14 @@ require_once __DIR__ . '/../config/db.php';
 // Only admins
 if (!is_admin()) { header('Location: /login.php'); exit; }
 
-// CSRF token
-if (empty($_SESSION['csrf_token'])) {
-  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-$CSRF = $_SESSION['csrf_token'];
-
 function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
-function flash($key){ if(!empty($_SESSION[$key])) { $m=$_SESSION[$key]; unset($_SESSION[$key]); return $m; } return null; }
 
-// Handle POST actions: add/edit/delete
+// Handle POST actions - READ ONLY MODE
+// Admin can only view reviews, no editing capabilities
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-    $_SESSION['flash_error'] = 'Security check failed. Please try again.';
-    header('Location: admin_reviews.php'); exit;
-  }
-
-  $action = $_POST['action'] ?? '';
-
-  if ($action === 'delete') {
-    $id = (int)($_POST['review_id'] ?? 0);
-    if ($id > 0) {
-      $stmt = mysqli_prepare($conn, 'DELETE FROM reviews WHERE id=?');
-      mysqli_stmt_bind_param($stmt, 'i', $id);
-      if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = "Review #$id deleted.";
-      } else {
-        $_SESSION['flash_error'] = 'Delete failed: '.mysqli_error($conn);
-      }
-      mysqli_stmt_close($stmt);
-    }
-    header('Location: admin_reviews.php'); exit;
-  }
-
-  if ($action === 'edit') {
-    $id = (int)($_POST['review_id'] ?? 0);
-    $rating = (int)($_POST['rating'] ?? 0);
-    $comment = trim($_POST['comment'] ?? '');
-    if ($id && $rating>=1 && $rating<=5 && $comment !== '') {
-      $stmt = mysqli_prepare($conn, 'UPDATE reviews SET rating=?, comment=? WHERE id=?');
-      mysqli_stmt_bind_param($stmt, 'isi', $rating, $comment, $id);
-      if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = "Review #$id updated.";
-      } else {
-        $_SESSION['flash_error'] = 'Update failed: '.mysqli_error($conn);
-      }
-      mysqli_stmt_close($stmt);
-    } else {
-      $_SESSION['flash_error'] = 'Please provide a valid rating and comment.';
-    }
-    header('Location: admin_reviews.php'); exit;
-  }
-
-  if ($action === 'add') {
-    $booking_id  = (int)($_POST['booking_id'] ?? 0);
-    $client_id   = (int)($_POST['client_id'] ?? 0);
-    $provider_id = (int)($_POST['provider_id'] ?? 0);
-    $rating      = (int)($_POST['rating'] ?? 0);
-    $comment     = trim($_POST['comment'] ?? '');
-
-    $errors = [];
-    if (!$booking_id) $errors[] = 'Booking is required.';
-    if (!$client_id) $errors[] = 'Client is required.';
-    if (!$provider_id) $errors[] = 'Provider is required.';
-    if ($rating < 1 || $rating > 5) $errors[] = 'Rating must be 1–5.';
-    if ($comment === '') $errors[] = 'Comment is required.';
-
-    if (!$errors) {
-      // Validate booking matches client/provider and is completed
-      $chk = mysqli_prepare($conn, "SELECT id FROM bookings WHERE id=? AND client_id=? AND provider_id=? AND status='completed' LIMIT 1");
-      mysqli_stmt_bind_param($chk, 'iii', $booking_id, $client_id, $provider_id);
-      mysqli_stmt_execute($chk);
-      $res = mysqli_stmt_get_result($chk);
-      if (!$res || mysqli_num_rows($res)===0) {
-        $errors[] = 'Booking doesn’t match the selected client/provider or is not completed.';
-      }
-      mysqli_stmt_close($chk);
-    }
-
-    if (!$errors) {
-      $stmt = mysqli_prepare($conn, 'INSERT INTO reviews (booking_id, reviewer_id, provider_id, rating, comment, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
-      mysqli_stmt_bind_param($stmt, 'iiiis', $booking_id, $client_id, $provider_id, $rating, $comment);
-      if (mysqli_stmt_execute($stmt)) {
-        $_SESSION['flash_success'] = 'Review added.';
-      } else {
-        $_SESSION['flash_error'] = 'Insert failed: '.mysqli_error($conn);
-      }
-      mysqli_stmt_close($stmt);
-    } else {
-      $_SESSION['flash_error'] = implode(' ', $errors);
-    }
-    header('Location: admin_reviews.php'); exit;
-  }
-
-  header('Location: admin_reviews.php'); exit;
+    // Redirect to avoid any potential form submissions
+    header('Location: admin_reviews.php');
+    exit;
 }
 
 // Stats
@@ -165,16 +79,7 @@ mysqli_stmt_execute($stmt);
 $reviews = mysqli_stmt_get_result($stmt);
 
 // Dropdown data
-$clients_rs   = mysqli_query($conn, "SELECT id, name FROM users WHERE role='client'  AND status IN ('active','inactive') ORDER BY name");
 $providers_rs = mysqli_query($conn, "SELECT id, name FROM users WHERE role='provider' AND status IN ('active','inactive') ORDER BY name");
-$bookings_rs  = mysqli_query($conn, "
-  SELECT b.id, b.booking_date, c.name AS client_name, p.name AS provider_name
-    FROM bookings b
-    JOIN users c ON b.client_id=c.id
-    JOIN users p ON b.provider_id=p.id
-   WHERE b.status='completed'
-   ORDER BY b.created_at DESC
-");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -219,24 +124,12 @@ $bookings_rs  = mysqli_query($conn, "
         <div class="col-lg-10">
           <div class="glass-card">
             <h1 class="display-4 fw-black mb-3 gradient-text">Review Management</h1>
-            <p class="lead mb-0">Monitor and manage customer reviews and ratings</p>
+            <p class="lead mb-0">Monitor customer reviews and ratings (Read-Only)</p>
           </div>
         </div>
       </div>
     </div>
   </section>
-
-  <!-- FLASH -->
-  <?php if ($s = flash('flash_success')): ?>
-    <section class="container-fluid py-6"><div class="row justify-content-center"><div class="col-lg-10">
-      <div class="alert alert-success"><?= e($s) ?></div>
-    </div></div></section>
-  <?php endif; ?>
-  <?php if ($e = flash('flash_error')): ?>
-    <section class="container-fluid py-6"><div class="row justify-content-center"><div class="col-lg-10">
-      <div class="alert alert-danger"><?= e($e) ?></div>
-    </div></div></section>
-  <?php endif; ?>
 
   <!-- STATS -->
   <section class="container-fluid py-6 section-glass">
@@ -272,7 +165,6 @@ $bookings_rs  = mysqli_query($conn, "
                 if ($rating_eq) $qs[] = 'rating='.$rating_eq;
                 echo $qs?('&'.implode('&',$qs)) : '';
               ?>"><i class="bi bi-download me-2"></i>Export</a>
-              <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addReviewModal"><i class="bi bi-plus-circle me-2"></i>Add Review</button>
             </div>
           </div>
 
@@ -342,25 +234,6 @@ $bookings_rs  = mysqli_query($conn, "
                                   <i class="bi bi-eye me-2"></i>View Details
                                 </a>
                               </li>
-                              <li>
-                                <a class="dropdown-item" href="#" onclick='editReview(
-                                  <?= (int)$r["id"] ?>,
-                                  <?= (int)$r["rating"] ?>,
-                                  <?= json_encode((string)$r["comment"]) ?>
-                                )'>
-                                  <i class="bi bi-pencil me-2"></i>Edit Review
-                                </a>
-                              </li>
-                              <li><hr class="dropdown-divider"></li>
-                              <li>
-                                <form method="POST" class="d-inline" onsubmit="return confirm('Delete this review? This action cannot be undone.');">
-                                  <input type="hidden" name="csrf_token" value="<?= e($CSRF) ?>">
-                                  <input type="hidden" name="review_id" value="<?= (int)$r['id'] ?>">
-                                  <button type="submit" name="action" value="delete" class="dropdown-item text-danger">
-                                    <i class="bi bi-trash me-2"></i>Delete Review
-                                  </button>
-                                </form>
-                              </li>
                             </ul>
                           </div>
                         </td>
@@ -396,73 +269,6 @@ $bookings_rs  = mysqli_query($conn, "
     </div>
   </section>
 
-  <!-- ADD REVIEW MODAL -->
-  <div class="modal fade" id="addReviewModal" tabindex="-1" aria-labelledby="addReviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form method="POST">
-          <input type="hidden" name="csrf_token" value="<?= e($CSRF) ?>">
-          <input type="hidden" name="action" value="add">
-          <div class="modal-header">
-            <h5 class="modal-title gradient-text" id="addReviewModalLabel"><i class="bi bi-plus-circle me-2"></i>Add New Review</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label fw-bold">Booking (completed) *</label>
-                <select class="form-select" name="booking_id" id="add_booking" required>
-                  <option value="">Select Booking</option>
-                  <?php while($b = mysqli_fetch_assoc($bookings_rs)): ?>
-                    <option value="<?= (int)$b['id'] ?>" data-client_name="<?= e($b['client_name']) ?>" data-provider_name="<?= e($b['provider_name']) ?>">#<?= (int)$b['id'] ?> — <?= e($b['client_name']) ?> → <?= e($b['provider_name']) ?> (<?= e($b['booking_date']) ?>)</option>
-                  <?php endwhile; ?>
-                </select>
-                <div class="form-text">Must be a completed booking.</div>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold">Client *</label>
-                <select class="form-select" name="client_id" id="add_client" required>
-                  <option value="">Select Client</option>
-                  <?php mysqli_data_seek($clients_rs, 0); while($c = mysqli_fetch_assoc($clients_rs)): ?>
-                    <option value="<?= (int)$c['id'] ?>"><?= e($c['name']) ?></option>
-                  <?php endwhile; ?>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label fw-bold">Provider *</label>
-                <select class="form-select" name="provider_id" id="add_provider" required>
-                  <option value="">Select Provider</option>
-                  <?php mysqli_data_seek($providers_rs, 0); while($p2 = mysqli_fetch_assoc($providers_rs)): ?>
-                    <option value="<?= (int)$p2['id'] ?>"><?= e($p2['name']) ?></option>
-                  <?php endwhile; ?>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label fw-bold">Rating *</label>
-                <select class="form-select" name="rating" required>
-                  <option value="">Select Rating</option>
-                  <option value="1">1 Star - Poor</option>
-                  <option value="2">2 Stars - Fair</option>
-                  <option value="3">3 Stars - Good</option>
-                  <option value="4">4 Stars - Very Good</option>
-                  <option value="5">5 Stars - Excellent</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <label class="form-label fw-bold">Comment *</label>
-                <textarea class="form-control" name="comment" rows="4" required placeholder="Enter review comment..."></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Add Review</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <!-- VIEW REVIEW MODAL -->
   <div class="modal fade" id="viewReviewModal" tabindex="-1" aria-labelledby="viewReviewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -486,45 +292,6 @@ $bookings_rs  = mysqli_query($conn, "
     </div>
   </div>
 
-  <!-- EDIT REVIEW MODAL -->
-  <div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form method="POST">
-          <input type="hidden" name="csrf_token" value="<?= e($CSRF) ?>">
-          <input type="hidden" name="action" value="edit">
-          <input type="hidden" name="review_id" id="edit_review_id">
-          <div class="modal-header">
-            <h5 class="modal-title gradient-text" id="editReviewModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Review</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label fw-bold">Rating *</label>
-                <select class="form-select" name="rating" id="edit_rating" required>
-                  <option value="1">1 Star - Poor</option>
-                  <option value="2">2 Stars - Fair</option>
-                  <option value="3">3 Stars - Good</option>
-                  <option value="4">4 Stars - Very Good</option>
-                  <option value="5">5 Stars - Excellent</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <label class="form-label fw-bold">Comment *</label>
-                <textarea class="form-control" name="comment" id="edit_comment" rows="4" required></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-2"></i>Update Review</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <!-- FOOTER -->
   <footer class="footer-glass text-center py-4 mt-5">
     <small>&copy; <?= date('Y'); ?> Logistics &amp; Moving Booking System. All rights reserved.</small>
@@ -533,22 +300,6 @@ $bookings_rs  = mysqli_query($conn, "
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    // Booking selection -> auto-fill client/provider selects (best-effort)
-    (function(){
-      const booking = document.getElementById('add_booking');
-      const client  = document.getElementById('add_client');
-      const prov    = document.getElementById('add_provider');
-      if (!booking || !client || !prov) return;
-      booking.addEventListener('change', function(){
-        const opt = booking.options[booking.selectedIndex];
-        if (!opt) return;
-        const cn = opt.getAttribute('data-client_name');
-        const pn = opt.getAttribute('data-provider_name');
-        for (const o of client.options)  { if (o.text === cn) { client.value = o.value; break; } }
-        for (const o of prov.options)    { if (o.text === pn) { prov.value = o.value; break; } }
-      });
-    })();
-
     // Detail modal
     function viewReviewDetails(id, client_name, provider_name, rating, comment, created_at) {
       document.getElementById('view_review_id').value = '#' + id;
@@ -559,14 +310,6 @@ $bookings_rs  = mysqli_query($conn, "
       try { document.getElementById('view_review_created_at').value = new Date(created_at).toLocaleString(); }
       catch(e){ document.getElementById('view_review_created_at').value = created_at; }
       new bootstrap.Modal(document.getElementById('viewReviewModal')).show();
-    }
-
-    // Edit modal
-    function editReview(id, rating, comment){
-      document.getElementById('edit_review_id').value = id;
-      document.getElementById('edit_rating').value = rating;
-      document.getElementById('edit_comment').value = comment;
-      new bootstrap.Modal(document.getElementById('editReviewModal')).show();
     }
 
     // Ensure dropdowns aren't clipped

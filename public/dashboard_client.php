@@ -3,13 +3,15 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/db.php';
 if (!is_client()) { header('Location: /login.php'); exit; }
 
-$user_id = $_SESSION['user_id'];
+$user = current_user();
+$user_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 // Get client statistics
 $total_bookings = mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM bookings WHERE client_id = $user_id"))[0];
 $active_bookings = mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM bookings WHERE client_id = $user_id AND status IN ('pending', 'confirmed', 'in_progress')"))[0];
 $completed_bookings = mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM bookings WHERE client_id = $user_id AND status = 'completed'"))[0];
 $total_spent = mysqli_fetch_row(mysqli_query($conn, "SELECT SUM(s.price) FROM bookings b JOIN services s ON b.service_id = s.id WHERE b.client_id = $user_id AND b.status = 'completed'"))[0];
+$total_spent = $total_spent ? (float)$total_spent : 0.0;
 
 // Get recent bookings
 $recent_bookings = mysqli_query($conn, "SELECT b.*, s.title AS service_title, s.price, p.name AS provider_name FROM bookings b JOIN services s ON b.service_id = s.id JOIN users p ON b.provider_id = p.id WHERE b.client_id = $user_id ORDER BY b.created_at DESC LIMIT 5");
@@ -33,9 +35,8 @@ $recent_reviews = mysqli_query($conn, "SELECT r.*, p.name AS provider_name FROM 
   <!-- Professional Navigation -->
   <nav class="navbar navbar-expand-lg navbar-glass">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold fs-3" href="dashboard_client.php">
-        <img src="../assets/img/logo.svg" alt="MovePro Client Logo" class="logo-svg">
-        <span class="logo-text-white">MovePro</span><span class="logo-text-blue">Client</span>
+      <a class="navbar-brand fw-bold fs-3 gradient-text" href="dashboard_client.php">
+        <i class="bi bi-person-circle me-2"></i>Client<span class="text-gradient-secondary">&</span>Dashboard
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#clientNav">
         <span class="navbar-toggler-icon"></span>
@@ -50,8 +51,8 @@ $recent_reviews = mysqli_query($conn, "SELECT r.*, p.name AS provider_name FROM 
           <li class="nav-item ms-3">
             <div class="dropdown">
               <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <?= get_profile_image_html($user, 'small', false) ?>
-                <span class="ms-2"><?= htmlspecialchars($user['name']) ?></span>
+                <i class="bi bi-person-circle"></i>
+                <span class="ms-2"><?= htmlspecialchars($user['name'] ?? 'Me') ?></span>
               </a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="client_profile.php"><i class="bi bi-person me-2"></i>My Profile</a></li>
@@ -179,7 +180,7 @@ $recent_reviews = mysqli_query($conn, "SELECT r.*, p.name AS provider_name FROM 
               </div>
               <h4>Track Shipments</h4>
               <p class="text-muted">Track your active shipments in real-time</p>
-              <a href="tracking.php" class="btn btn-primary">
+                 <a href="tracking.php" class="btn btn-primary">
                 <i class="bi bi-location me-2"></i>Track Now
               </a>
             </div>

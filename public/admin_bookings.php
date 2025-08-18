@@ -3,48 +3,10 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/db.php';
 if (!is_admin()) { header('Location: /login.php'); exit; }
 
-// Handle actions
+// Handle actions - READ ONLY MODE
+// Admin can only view bookings, no editing capabilities
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = intval($_POST['booking_id'] ?? 0);
-    if ($id) {
-        if (isset($_POST['action']) && $_POST['action'] === 'delete') {
-            $stmt = mysqli_prepare($conn, "DELETE FROM bookings WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        } elseif (isset($_POST['action']) && $_POST['action'] === 'status' && isset($_POST['new_status'])) {
-            $status = $_POST['new_status'];
-            $stmt = mysqli_prepare($conn, "UPDATE bookings SET status = ? WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'si', $status, $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        } elseif (isset($_POST['action']) && $_POST['action'] === 'edit') {
-            $details = trim($_POST['details']);
-            $booking_date = $_POST['booking_date'];
-            $status = $_POST['status'];
-            
-            if ($details && $booking_date) {
-                $stmt = mysqli_prepare($conn, "UPDATE bookings SET details=?, booking_date=?, status=? WHERE id=?");
-                mysqli_stmt_bind_param($stmt, 'sssi', $details, $booking_date, $status, $id);
-                mysqli_stmt_execute($stmt);
-                mysqli_stmt_close($stmt);
-            }
-        }
-    } elseif (isset($_POST['action']) && $_POST['action'] === 'add') {
-        $client_id = intval($_POST['client_id']);
-        $provider_id = intval($_POST['provider_id']);
-        $service_id = intval($_POST['service_id']);
-        $details = trim($_POST['details']);
-        $booking_date = $_POST['booking_date'];
-        $status = $_POST['status'];
-        
-        if ($client_id && $provider_id && $service_id && $details && $booking_date) {
-            $stmt = mysqli_prepare($conn, "INSERT INTO bookings (client_id, provider_id, service_id, details, booking_date, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-            mysqli_stmt_bind_param($stmt, 'iiisss', $client_id, $provider_id, $service_id, $details, $booking_date, $status);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
-        }
-    }
+    // Redirect to avoid any potential form submissions
     header('Location: admin_bookings.php');
     exit;
 }
@@ -200,9 +162,7 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
               <button class="btn btn-outline-primary" onclick="exportBookings()">
                 <i class="bi bi-download me-2"></i>Export
               </button>
-              <button class="btn btn-primary" onclick="showAddBookingModal()">
-                <i class="bi bi-plus-circle me-2"></i>Add Booking
-              </button>
+
             </div>
           </div>
 
@@ -255,7 +215,6 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
                     <th data-sort>Status</th>
                     <th data-sort>Price</th>
                     <th data-sort>Created</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,51 +266,6 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
                       </td>
                       <td class="number-cell">$<?= number_format($b['price'], 2) ?></td>
                       <td class="date-cell"><?= date('M d, Y', strtotime($b['created_at'])) ?></td>
-                      <td class="actions-cell">
-                        <div class="btn-group">
-                          <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear"></i> Actions
-                          </button>
-                          <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="viewBookingDetails(<?= $b['id'] ?>)">
-                              <i class="bi bi-eye me-2"></i>View Details
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="viewBookingDetails(<?= $b['id'] ?>, '<?= htmlspecialchars($b['client_name']) ?>', '<?= htmlspecialchars($b['provider_name']) ?>', '<?= htmlspecialchars($b['service_title']) ?>', '<?= htmlspecialchars($b['details']) ?>', '<?= $b['booking_date'] ?>', '<?= $b['status'] ?>', '<?= $b['created_at'] ?>')">
-                              <i class="bi bi-eye me-2"></i>View Details
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="editBooking(<?= $b['id'] ?>, '<?= htmlspecialchars($b['details']) ?>', '<?= $b['booking_date'] ?>', '<?= $b['status'] ?>')">
-                              <i class="bi bi-pencil me-2"></i>Edit Booking
-                            </a></li>
-                            <li><a class="dropdown-item" href="tracking.php?booking_id=<?= $b['id'] ?>">
-                              <i class="bi bi-geo-alt me-2"></i>Track Booking
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                              <form method="POST" class="d-inline">
-                                <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                                <select name="new_status" class="form-select form-select-sm mb-2" onchange="this.form.submit()">
-                                  <option value="">Change Status</option>
-                                  <option value="pending">Pending</option>
-                                  <option value="confirmed">Confirmed</option>
-                                  <option value="in_progress">In Progress</option>
-                                  <option value="completed">Completed</option>
-                                  <option value="cancelled">Cancelled</option>
-                                </select>
-                                <input type="hidden" name="action" value="status">
-                              </form>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                              <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this booking? This action cannot be undone.');">
-                                <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                                <button type="submit" name="action" value="delete" class="dropdown-item text-danger">
-                                  <i class="bi bi-trash me-2"></i>Delete Booking
-                                </button>
-                              </form>
-                            </li>
-                          </ul>
-                        </div>
-                      </td>
                     </tr>
                   <?php endwhile; ?>
                 </tbody>
@@ -381,91 +295,7 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
     </div>
   </section>
 
-  <!-- Add Booking Modal -->
-  <div class="modal fade" id="addBookingModal" tabindex="-1" aria-labelledby="addBookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form method="POST">
-          <input type="hidden" name="action" value="add">
-          <div class="modal-header">
-            <h5 class="modal-title gradient-text" id="addBookingModalLabel">
-              <i class="bi bi-plus-circle me-2"></i>Add New Booking
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Client *</label>
-                  <select class="form-select" name="client_id" required>
-                    <option value="">Select Client</option>
-                    <?php while($c = mysqli_fetch_assoc($clients)): ?>
-                      <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
-                    <?php endwhile; ?>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Provider *</label>
-                  <select class="form-select" name="provider_id" required>
-                    <option value="">Select Provider</option>
-                    <?php while($p = mysqli_fetch_assoc($providers)): ?>
-                      <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
-                    <?php endwhile; ?>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Service *</label>
-                  <select class="form-select" name="service_id" required>
-                    <option value="">Select Service</option>
-                    <?php while($s = mysqli_fetch_assoc($services)): ?>
-                      <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['title']) ?></option>
-                    <?php endwhile; ?>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Booking Date *</label>
-                  <input type="date" class="form-control" name="booking_date" required min="<?= date('Y-m-d') ?>">
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Status *</label>
-                  <select class="form-select" name="status" required>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Details *</label>
-              <textarea class="form-control" name="details" rows="3" required placeholder="Enter booking details..."></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-plus-circle me-2"></i>Add Booking
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+
 
   <!-- View Booking Details Modal -->
   <div class="modal fade" id="viewBookingModal" tabindex="-1" aria-labelledby="viewBookingModalLabel" aria-hidden="true">
@@ -536,55 +366,7 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
     </div>
   </div>
 
-  <!-- Edit Booking Modal -->
-  <div class="modal fade" id="editBookingModal" tabindex="-1" aria-labelledby="editBookingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <form method="POST">
-          <input type="hidden" name="action" value="edit">
-          <input type="hidden" name="booking_id" id="edit_booking_id">
-          <div class="modal-header">
-            <h5 class="modal-title gradient-text" id="editBookingModalLabel">
-              <i class="bi bi-pencil-square me-2"></i>Edit Booking
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Booking Date *</label>
-                  <input type="date" class="form-control" name="booking_date" id="edit_booking_date" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Status *</label>
-                  <select class="form-select" name="status" id="edit_status" required>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Details *</label>
-              <textarea class="form-control" name="details" id="edit_details" rows="3" required></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-check-circle me-2"></i>Update Booking
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Footer -->
   <footer class="footer-glass text-center py-4 mt-5">
@@ -603,11 +385,6 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
     function exportBookings() {
       // Export functionality placeholder
       showToast('Export feature coming soon!', 'info');
-    }
-
-    function showAddBookingModal() {
-      var modal = new bootstrap.Modal(document.getElementById('addBookingModal'));
-      modal.show();
     }
 
     function viewBookingDetails(id, client_name, provider_name, service_title, details, booking_date, status, created_at) {
@@ -632,21 +409,6 @@ $services = mysqli_query($conn, "SELECT id, title FROM services WHERE status = '
       
       var modal = new bootstrap.Modal(document.getElementById('viewBookingModal'));
       modal.show();
-    }
-
-    function editBooking(id, details, booking_date, status) {
-      document.getElementById('edit_booking_id').value = id;
-      document.getElementById('edit_details').value = details;
-      document.getElementById('edit_booking_date').value = booking_date;
-      document.getElementById('edit_status').value = status;
-      
-      var modal = new bootstrap.Modal(document.getElementById('editBookingModal'));
-      modal.show();
-    }
-
-    function viewBookingDetails(bookingId) {
-      // View booking details functionality placeholder
-      showToast('Booking details feature coming soon!', 'info');
     }
   </script>
 </body>
